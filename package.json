@@ -1,6 +1,6 @@
 {
   "name": "@sargis-artashyan/react-smart-crop",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "MIT",
   "author": "Sargis Artashyan",
   "description": "Smart responsive image cropping using WebAssembly and computer vision. Faster than JS, privacy-focused, and client-side.",
