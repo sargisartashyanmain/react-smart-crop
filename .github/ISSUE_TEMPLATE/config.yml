@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: 📚 Documentation & Tutorials
+    url: https://github.com/sargisartashyanmain/react-smart-crop#-quick-start
+    about: Read the getting started guide
+  
+  - name: 💬 GitHub Discussions
+    url: https://github.com/sargisartashyanmain/react-smart-crop/discussions
+    about: Ask questions and share ideas
+  
+  - name: 📖 Troubleshooting Guide
+    url: https://github.com/sargisartashyanmain/react-smart-crop#-troubleshooting--caveats
+    about: Common issues and solutions

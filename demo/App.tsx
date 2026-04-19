@@ -756,7 +756,7 @@ function AppContent() {
                         <a href="#demo">{t(language, 'nav.demo')}</a>
                         <a href="#usage">{t(language, 'nav.usage')}</a>
                         <a href="#api">{t(language, 'nav.api')}</a>
-                        <a href="https://github.com" target="_blank" rel="noreferrer">{t(language, 'nav.github')}</a>
+                        <a href="https://github.com/sargisartashyanmain/react-smart-crop" target="_blank" rel="noreferrer">{t(language, 'nav.github')}</a>
                     </div>
                     <div className="nav-controls">
                         <div className="language-switch">
@@ -865,15 +865,15 @@ function AppContent() {
                     <pre>npm install @sargis-artashyan/react-smart-crop</pre>
 
                     <p style={{ marginTop: '32px', marginBottom: '16px' }}>{t(language, 'usage.example_title')}</p>
-                    <pre>{`import { SmartCropImage } from '@sargis-artashyan/react-smart-crop';
+                    <pre>{`import React from 'react';
+import { SmartCropImage } from '@sargis-artashyan/react-smart-crop';
 
 export function ${t(language, 'usage.component')}() {
   return (
     <div style={{ width: '100%', height: '400px' }}>
       <SmartCropImage 
-        src="path/to/image.jpg" 
-        alt="Smart crop example"
-        debug={false}
+        src="https://example.com/portrait.jpg"
+        alt="Profile picture"
       />
     </div>
   );
@@ -936,7 +936,7 @@ export function ${t(language, 'usage.component')}() {
                 {/* Footer */}
                 <footer>
                     <div className="footer-links">
-                        <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
+                        <a href="https://github.com/sargisartashyanmain/react-smart-crop" target="_blank" rel="noreferrer">GitHub</a>
                         <a href="https://www.npmjs.com/package/@sargis-artashyan/react-smart-crop" target="_blank" rel="noreferrer">npm</a>
                         <a href="#">{t(language, 'footer.license')}</a>
                     </div>
