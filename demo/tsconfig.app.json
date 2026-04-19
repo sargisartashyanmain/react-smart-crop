@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "paths": {
+      "react": ["./node_modules/@types/react"],
+      "@sargis-artashyan/react-smart-crop": ["../src/index.ts"]
+    }
+  }
+}
