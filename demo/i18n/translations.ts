@@ -10,6 +10,7 @@ export const translations = {
     // Navigation & UI
     'nav.home': 'react-smart-crop',
     'nav.demo': 'Demo',
+    'nav.test': 'Test',
     'nav.usage': 'Usage',
     'nav.api': 'API',
     'nav.github': 'GitHub',
@@ -26,6 +27,15 @@ export const translations = {
     'demo.mobile_view': 'Mobile View',
     'demo.debug_heatmap': 'Debug Heatmap',
     'demo.viewport_width': 'Viewport: 375px',
+
+    // Test Section
+    'test.title': 'Test Your Image',
+    'test.subtitle': 'Upload your own image to see how SmartCrop intelligently handles your content.',
+    'test.upload_title': 'Upload an Image',
+    'test.upload_hint': 'Supported formats: JPG, PNG, WebP, GIF. Maximum file size: 10MB',
+    'test.select_image': 'Select Image',
+    'test.change_image': 'Change Image',
+    'test.clear_image': 'Clear',
 
     // Image Descriptions
     'images.1.title': 'Portrait Object Focus',
@@ -91,6 +101,7 @@ export const translations = {
     // Navigation & UI
     'nav.home': 'react-smart-crop',
     'nav.demo': 'Демо',
+    'nav.test': 'Тест',
     'nav.usage': 'Установка',
     'nav.api': 'API',
     'nav.github': 'GitHub',
@@ -107,6 +118,15 @@ export const translations = {
     'demo.mobile_view': 'Мобильный вид',
     'demo.debug_heatmap': 'Визуализация фокуса',
     'demo.viewport_width': 'Экран: 375px',
+
+    // Test Section
+    'test.title': 'Протестируйте свое изображение',
+    'test.subtitle': 'Загрузите свое изображение, чтобы увидеть, как SmartCrop умно обрабатывает ваш контент.',
+    'test.upload_title': 'Загрузить изображение',
+    'test.upload_hint': 'Поддерживаемые форматы: JPG, PNG, WebP, GIF. Максимальный размер: 10MB',
+    'test.select_image': 'Выбрать изображение',
+    'test.change_image': 'Изменить изображение',
+    'test.clear_image': 'Очистить',
 
     // Image Descriptions
     'images.1.title': 'Фокус на объект портрета',

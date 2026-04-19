@@ -127,8 +127,27 @@ const FeatureItem: React.FC<FeatureItemProps> = ({ icon, titleKey, descKey, lang
 function AppContent() {
     const [debug, setDebug] = useState(false);
     const [isMobileView, setIsMobileView] = useState(false);
+    const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+    const [uploadSliderPos, setUploadSliderPos] = useState(50);
     const { theme, toggleTheme, isDark } = useTheme();
     const { language, setLanguage } = useLanguage();
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setUploadedImage(url);
+            setUploadSliderPos(50);
+        }
+    };
+
+    const handleClearUpload = () => {
+        if (uploadedImage) {
+            URL.revokeObjectURL(uploadedImage);
+        }
+        setUploadedImage(null);
+        setUploadSliderPos(50);
+    };
 
     const themeVars = isDark ? {
         '--bg': '#0f172a',
@@ -691,6 +710,67 @@ function AppContent() {
           margin: 0;
         }
 
+        /* Upload Test Section */
+        .upload-section {
+          padding: 40px;
+          border: 2px dashed var(--border);
+          border-radius: 16px;
+          text-align: center;
+          background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(6, 182, 212, 0.05));
+          margin-bottom: 40px;
+          transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+          border-color: var(--accent);
+          background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.1));
+        }
+
+        .upload-section input[type="file"] {
+          display: none;
+        }
+
+        .upload-trigger {
+          display: inline-block;
+          padding: 12px 24px;
+          background: linear-gradient(135deg, var(--accent), #06b6d4);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          margin-top: 12px;
+        }
+
+        .upload-trigger:hover {
+          box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+          transform: translateY(-2px);
+        }
+
+        .upload-hint {
+          color: var(--subtle);
+          font-size: 13px;
+          margin-top: 8px;
+        }
+
+        .upload-clear-btn {
+          padding: 8px 16px;
+          background: var(--code-bg);
+          color: var(--text);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          margin-left: 12px;
+        }
+
+        .upload-clear-btn:hover {
+          background: var(--border);
+        }
+
         /* Footer */
         footer {
           padding: 60px 0;
@@ -754,6 +834,7 @@ function AppContent() {
                     <span className="nav-logo">{t(language, 'nav.home')}</span>
                     <div className="nav-links">
                         <a href="#demo">{t(language, 'nav.demo')}</a>
+                        <a href="#test">{t(language, 'nav.test')}</a>
                         <a href="#usage">{t(language, 'nav.usage')}</a>
                         <a href="#api">{t(language, 'nav.api')}</a>
                         <a href="https://github.com/sargisartashyanmain/react-smart-crop" target="_blank" rel="noreferrer">{t(language, 'nav.github')}</a>
@@ -856,6 +937,91 @@ function AppContent() {
                             language={language}
                         />
                     ))}
+                </section>
+
+                {/* Test Your Image Section */}
+                <section id="test">
+                    <h2>{t(language, 'test.title')}</h2>
+                    <p>{t(language, 'test.subtitle')}</p>
+                    
+                    <div className="upload-section">
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📤</div>
+                        <h3 style={{ marginBottom: '8px' }}>{t(language, 'test.upload_title')}</h3>
+                        <p className="upload-hint">{t(language, 'test.upload_hint')}</p>
+                        
+                        <input
+                            id="image-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                        />
+                        <label htmlFor="image-upload" className="upload-trigger">
+                            {uploadedImage ? t(language, 'test.change_image') : t(language, 'test.select_image')}
+                        </label>
+                        
+                        {uploadedImage && (
+                            <button className="upload-clear-btn" onClick={handleClearUpload}>
+                                {t(language, 'test.clear_image')}
+                            </button>
+                        )}
+                    </div>
+
+                    {uploadedImage && (
+                        <div style={{ marginTop: '40px' }}>
+                            <div className="controls-bar">
+                                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                                    <label className="switch-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={isMobileView}
+                                            onChange={() => setIsMobileView(!isMobileView)}
+                                        />
+                                        {t(language, 'demo.mobile_view')} {isMobileView && `(${t(language, 'demo.viewport_width')})`}
+                                    </label>
+                                    <label className="switch-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={debug}
+                                            onChange={() => setDebug(!debug)}
+                                        />
+                                        {t(language, 'demo.debug_heatmap')}
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className={`comparison-card ${isMobileView ? 'mobile-mode' : ''}`} style={{
+                                borderColor: isDark ? 'var(--dark-border)' : 'var(--light-border)',
+                                background: isDark ? 'var(--dark-card-bg)' : 'var(--light-card-bg)',
+                                position: 'relative',
+                            }}>
+                                <span className="img-tag default-tag">{t(language, 'tag.default')}</span>
+                                <span className="img-tag smart-tag">{t(language, 'tag.smart_crop')}</span>
+
+                                <div className="slider-container" style={{ height: isMobileView ? '550px' : '450px' }}>
+                                    <div className="img-box smart-layer">
+                                        <SmartCropImage src={uploadedImage} width="100%" height={isMobileView ? '550px' : '450px'} debug={debug} alt="Uploaded image" />
+                                    </div>
+
+                                    <div className="img-box default-layer" style={{ clipPath: `inset(0 ${100 - uploadSliderPos}% 0 0)` }}>
+                                        <img src={uploadedImage} style={{ width: '100%', height: isMobileView ? '550px' : '450px', objectFit: 'cover' }} alt="Original uploaded image" />
+                                    </div>
+
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={uploadSliderPos}
+                                        onChange={(e) => setUploadSliderPos(Number(e.target.value))}
+                                        className="slider-input"
+                                        aria-label="Comparison slider for uploaded image"
+                                    />
+                                    <div className="slider-line upload-comparison-slider-line" style={{ left: `${uploadSliderPos}%` }}>
+                                        <div className="slider-handle" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </section>
 
                 {/* Usage Section */}
