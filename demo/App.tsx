@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SmartCropImage } from '../src/components/SmartCropImage';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { t } from './i18n/translations';
 import type { Language } from './i18n/translations';
@@ -16,20 +15,8 @@ const DEMO_IMAGES = [
     {
         id: 1,
         url: './test-img-1.jpg',
-        author: 'Kevin Noble',
-        source: 'https://unsplash.com/photos/short-coated-brown-dog-on-gray-cliff-gA3Qd2tquMc'
-    },
-    {
-        id: 2,
-        url: './test-img-2.jpg',
         author: 'Marco Montero Pisani',
         source: 'https://unsplash.com/photos/red-and-yellow-mini-figure-on-marble-surface-near-water-fountain-Rqe-hlgoaXY'
-    },
-    {
-        id: 3,
-        url: './test-img-3.jpg',
-        author: 'Muhammad-Taha Ibrahim',
-        source: 'https://unsplash.com/photos/girl-standing-beside-bird-cage-p7dr0jQwuyE'
     },
 ];
 
@@ -47,20 +34,51 @@ interface ComparisonSliderProps {
     debug: boolean;
     isMobile: boolean;
     language: Language;
+    autoPlay?: boolean;
+    isHero?: boolean;
 }
 
-const ComparisonSlider: React.FC<ComparisonSliderProps> = ({ imgIndex, debug, isMobile, language }) => {
+const ComparisonSlider: React.FC<ComparisonSliderProps> = ({ imgIndex, debug, isMobile, language, autoPlay = false, isHero = false }) => {
     const [sliderPos, setSliderPos] = useState(50);
-    const { isDark } = useTheme();
+    const [isHovering, setIsHovering] = useState(false);
     const img = DEMO_IMAGES[imgIndex];
-    const containerHeight = isMobile ? '550px' : '450px';
+    const containerHeight = isMobile ? '550px' : (isHero ? '500px' : '450px');
+
+    useEffect(() => {
+        if (!autoPlay || isHovering) return;
+        
+        let animationFrame: number;
+        let lastTime = Date.now();
+        
+        const animate = () => {
+            const now = Date.now();
+            const deltaTime = now - lastTime;
+            lastTime = now;
+            
+            // ~16.67ms per frame for smooth 60fps
+            if (deltaTime >= 16) {
+                setSliderPos(prev => {
+                    const newPos = prev + 0.3;
+                    return newPos > 85 ? 15 : newPos;
+                });
+                lastTime = now;
+            }
+            
+            animationFrame = requestAnimationFrame(animate);
+        };
+        
+        animationFrame = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(animationFrame);
+    }, [autoPlay, isHovering]);
 
     return (
-        <div className={`comparison-card ${isMobile ? 'mobile-mode' : ''}`} style={{
-            borderColor: isDark ? 'var(--dark-border)' : 'var(--light-border)',
-            background: isDark ? 'var(--dark-card-bg)' : 'var(--light-card-bg)',
-            position: 'relative',
-        }}>
+        <div className={`comparison-card ${isMobile ? 'mobile-mode' : ''} ${isHero ? 'hero-slider' : ''}`} 
+            style={{
+                position: 'relative',
+                pointerEvents: 'auto',
+            }}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}>
             <span className="img-tag default-tag">{t(language, 'tag.default')}</span>
             <span className="img-tag smart-tag">{t(language, 'tag.smart_crop')}</span>
 
@@ -101,20 +119,67 @@ const ComparisonSlider: React.FC<ComparisonSliderProps> = ({ imgIndex, debug, is
  * Features Grid Component
  */
 interface FeatureItemProps {
-    icon: string;
+    icon: React.ReactNode;
     titleKey: string;
     descKey: string;
     language: Language;
 }
 
+// SVG Icons
+const Icons = {
+    Zap: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+    ),
+    Lock: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+    ),
+    Phone: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <path d="M12 18h.01"></path>
+        </svg>
+    ),
+    Globe: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+    ),
+    Rocket: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M4.5 16.5c-1.5-1.5-2-4-2-4s2.5-.5 4-2"></path>
+            <path d="M19.5 4.5c1.5 1.5 2 4 2 4s-2.5.5-4 2"></path>
+            <path d="M7 7l10 10M12 2l5.09 15.59M2 12h20"></path>
+            <circle cx="12" cy="12" r="1"></circle>
+        </svg>
+    ),
+    HardDrive: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M22 12H2"></path>
+            <path d="M20 9H4c-1.105 0-2 .895-2 2v10c0 1.105.895 2 2 2h16c1.105 0 2-.895 2-2V11c0-1.105-.895-2-2-2z"></path>
+            <circle cx="6" cy="20" r="1"></circle>
+            <circle cx="12" cy="20" r="1"></circle>
+        </svg>
+    ),
+    Lightbulb: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+    )
+};
+
 const FeatureItem: React.FC<FeatureItemProps> = ({ icon, titleKey, descKey, language }) => {
-    const { isDark } = useTheme();
     return (
-        <div className="feature-item" style={{
-            background: isDark ? 'var(--dark-feature-bg)' : 'var(--light-feature-bg)',
-            borderColor: isDark ? 'var(--dark-border)' : 'var(--light-border)',
-        }}>
-            <div className="feature-icon">{icon}</div>
+        <div className="feature-item">
+            <div className="feature-icon">
+                {icon}
+            </div>
             <h4>{t(language, titleKey)}</h4>
             <p>{t(language, descKey)}</p>
         </div>
@@ -129,8 +194,17 @@ function AppContent() {
     const [isMobileView, setIsMobileView] = useState(false);
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const [uploadSliderPos, setUploadSliderPos] = useState(50);
-    const { theme, toggleTheme, isDark } = useTheme();
+    const [scrolled, setScrolled] = useState(false);
+    const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
     const { language, setLanguage } = useLanguage();
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 50);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -149,56 +223,49 @@ function AppContent() {
         setUploadSliderPos(50);
     };
 
-    const themeVars = isDark ? {
-        '--bg': '#0f172a',
-        '--text': '#f1f5f9',
-        '--accent': '#0ea5e9',
-        '--subtle': '#94a3b8',
-        '--border': '#1e293b',
-        '--code-bg': '#1e293b',
-        '--light-border': '#1e293b',
-        '--dark-border': '#1e293b',
-        '--light-card-bg': '#1e293b',
-        '--dark-card-bg': '#0f172a',
-        '--light-feature-bg': '#1e293b',
-        '--dark-feature-bg': '#0f172a',
-        '--nav-bg': '#0f172a',
-        '--input-bg': '#1e293b',
-    } : {
-        '--bg': '#ffffff',
-        '--text': '#0f172a',
-        '--accent': '#0ea5e9',
-        '--subtle': '#64748b',
-        '--border': '#e2e8f0',
-        '--code-bg': '#f8fafc',
-        '--light-border': '#e2e8f0',
-        '--dark-border': '#e2e8f0',
-        '--light-card-bg': '#ffffff',
-        '--dark-card-bg': '#f8fafc',
-        '--light-feature-bg': '#f8fafc',
-        '--dark-feature-bg': '#f0f9ff',
-        '--nav-bg': 'rgba(255,255,255,0.8)',
-        '--input-bg': '#f8fafc',
-    };
+    const themeVars =  {
+        '--bg': '#000000',
+        '--text': '#ffffff',
+        '--accent': '#007AFF',
+        '--subtle': '#8E8E93',
+        '--border': '#333333',
+        '--code-bg': '#1C1C1E',
+    }
 
     return (
-        <div className="app-root" style={themeVars as any} data-theme={theme}>
+        <div className="app-root" style={themeVars as any} data-theme={`${'dark'}`}>
             <style>{`
         :root {
-          --accent: #0ea5e9;
-          --bg: #ffffff;
-          --text: #0f172a;
-          --subtle: #64748b;
-          --border: #e2e8f0;
-          --code-bg: #f8fafc;
+          --accent: #007AFF;
+          --bg: #000000;
+          --text: #ffffff;
+          --subtle: #8E8E93;
+          --border: #333333;
+          --code-bg: #1C1C1E;
         }
         
-        [data-theme="dark"] {
-          --bg: #0f172a;
-          --text: #f1f5f9;
-          --subtle: #94a3b8;
-          --border: #1e293b;
-          --code-bg: #1e293b;
+        [data-theme="light"] {
+          --bg: #FFFFFF;
+          --text: #000000;
+          --subtle: #8E8E93;
+          --border: #E5E5EA;
+          --code-bg: #F5F5F7;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
         * {
@@ -219,14 +286,13 @@ function AppContent() {
         .nav {
           position: sticky;
           top: 0;
-          background: var(--nav-bg);
-          backdrop-filter: blur(10px);
+          background: var(--bg);
           border-bottom: 1px solid var(--border);
           z-index: 999;
-          height: 70px;
+          height: 56px;
           display: flex;
           align-items: center;
-          transition: all 0.3s ease;
+          transition: none;
         }
 
         .nav-container {
@@ -236,16 +302,14 @@ function AppContent() {
           width: 100%;
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 24px;
+          padding: 0 32px;
         }
 
         .nav-logo {
-          font-weight: 800;
-          font-size: 20px;
-          background: linear-gradient(135deg, #0ea5e9, #06b6d4);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          font-weight: 700;
+          font-size: 18px;
+          color: var(--text);
+          letter-spacing: -0.01em;
         }
 
         .nav-links {
@@ -257,24 +321,13 @@ function AppContent() {
 
         .nav-links a {
           text-decoration: none;
-          color: inherit;
-          position: relative;
-          transition: color 0.3s ease;
+          color: var(--text);
+          opacity: 0.7;
+          transition: opacity 0.2s ease;
         }
 
-        .nav-links a::after {
-          content: '';
-          position: absolute;
-          width: 0;
-          height: 2px;
-          bottom: -5px;
-          left: 0;
-          background: var(--accent);
-          transition: width 0.3s ease;
-        }
-
-        .nav-links a:hover::after {
-          width: 100%;
+        .nav-links a:hover {
+          opacity: 1;
         }
 
         .nav-controls {
@@ -283,48 +336,102 @@ function AppContent() {
           align-items: center;
         }
 
-        .language-switch, .theme-toggle {
-          display: flex;
-          gap: 6px;
-          background: var(--code-bg);
-          border-radius: 8px;
-          padding: 6px;
-          border: 1px solid var(--border);
+        .language-dropdown {
+          position: relative;
+          display: inline-block;
         }
 
-        .lang-btn, .theme-btn {
-          padding: 6px 12px;
+        .language-flag-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          background: var(--bg);
+          cursor: pointer;
+          padding: 0;
+          transition: all 0.2s ease;
+        }
+
+        .language-flag-btn:hover {
+          border-color: var(--accent);
+        }
+
+        .language-flag-btn:focus {
+          outline: none;
+          border-color: var(--accent);
+          box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+        }
+
+        .language-menu {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          margin-top: 8px;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          z-index: 1000;
+          animation: slideDown 0.2s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .language-option {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
           border: none;
           background: transparent;
           cursor: pointer;
-          font-size: 13px;
-          font-weight: 600;
-          border-radius: 6px;
           transition: all 0.2s ease;
-          color: var(--text);
+          padding: 0;
+          border-radius: 0;
         }
 
-        .lang-btn.active, .theme-btn.active {
-          background: var(--accent);
-          color: white;
+        .language-option:first-child {
+          border-radius: 7px 7px 0 0;
         }
 
-        .lang-btn:hover, .theme-btn:hover {
-          opacity: 0.7;
+        .language-option:last-child {
+          border-radius: 0 0 7px 7px;
+        }
+
+        .language-option:hover {
+          background: rgba(0, 122, 255, 0.1);
         }
 
         /* Container */
         .container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 24px;
-          transition: all 0.3s ease;
+          padding: 0 32px;
         }
 
         /* Sections */
         section {
-          padding: 100px 0;
+          padding: 80px 0;
           border-bottom: 1px solid var(--border);
+          animation: slideUp 0.6s ease;
         }
 
         section:last-child {
@@ -332,35 +439,37 @@ function AppContent() {
         }
 
         h1 {
-          font-size: clamp(36px, 8vw, 72px);
-          font-weight: 800;
-          letter-spacing: -0.04em;
+          font-size: clamp(42px, 8vw, 72px);
+          font-weight: 700;
+          letter-spacing: -0.02em;
           margin-bottom: 16px;
           line-height: 1.1;
         }
 
         h2 {
-          font-size: 36px;
+          font-size: clamp(28px, 5vw, 44px);
           font-weight: 700;
-          margin-bottom: 24px;
-          letter-spacing: -0.02em;
+          margin-bottom: 48px;
+          letter-spacing: -0.015em;
+          line-height: 1.1;
         }
 
         h3 {
           font-size: 20px;
-          font-weight: 700;
+          font-weight: 600;
           margin-bottom: 12px;
         }
 
         h4 {
-          font-size: 16px;
-          font-weight: 700;
+          font-size: 15px;
+          font-weight: 600;
           margin-bottom: 8px;
         }
 
         p {
           color: var(--subtle);
-          line-height: 1.8;
+          line-height: 1.7;
+          font-size: 15px;
         }
 
         /* Hero Section */
@@ -368,100 +477,160 @@ function AppContent() {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          min-height: 60vh;
+          align-items: center;
+          min-height: 100vh;
+          text-align: center;
+          padding: 80px 0;
+          gap: 56px;
+          border-bottom: none;
+        }
+
+        .hero-content {
+          max-width: 720px;
+          animation: slideUp 0.6s ease;
         }
 
         .hero h1 {
-          background: linear-gradient(135deg, var(--accent), #06b6d4);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          margin-bottom: 24px;
+          color: var(--text);
+          margin-bottom: 12px;
         }
 
         .hero-subtitle {
-          font-size: 20px;
+          font-size: 18px;
           color: var(--subtle);
           max-width: 600px;
-          margin-bottom: 40px;
-          line-height: 1.8;
+          margin: 0 auto 32px;
+          line-height: 1.6;
+          animation: slideUp 0.7s ease 0.1s backwards;
+        }
+
+        .performance-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.3px;
+          padding: 8px 16px;
+          background: transparent;
+          border: 1px solid var(--accent);
+          border-radius: 16px;
+          color: var(--accent);
+          text-transform: uppercase;
+          margin-bottom: 32px;
+          animation: slideUp 0.6s ease 0.05s backwards;
+        }
+
+        .performance-badge svg {
+          width: 16px;
+          height: 16px;
+          stroke-width: 2.5;
+        }
+
+        .hero-slider {
+          max-width: 900px;
+          width: 100%;
+          animation: slideUp 0.8s ease 0.2s backwards;
         }
 
         .hero-cta {
           display: flex;
           gap: 16px;
-          align-items: center;
+          justify-content: center;
+          animation: slideUp 0.9s ease 0.3s backwards;
+          flex-wrap: wrap;
         }
 
         .btn {
           padding: 12px 28px;
           border: none;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
           text-decoration: none;
-          display: inline-block;
+          display: inline-flex;
+          align-items: center;
+          letter-spacing: -0.01em;
         }
 
         .btn-primary {
-          background: linear-gradient(135deg, var(--accent), #06b6d4);
+          background: var(--accent);
           color: white;
-          box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
         }
 
         .btn-primary:hover {
-          box-shadow: 0 8px 25px rgba(14, 165, 233, 0.4);
+          opacity: 0.8;
           transform: translateY(-2px);
         }
 
+        .btn-primary:active {
+          transform: translateY(0);
+        }
+
         .btn-secondary {
-          background: var(--code-bg);
-          color: var(--text);
-          border: 1px solid var(--border);
+          background: transparent;
+          color: var(--accent);
+          border: 1.5px solid var(--accent);
         }
 
         .btn-secondary:hover {
-          background: var(--border);
+          background: var(--accent);
+          color: white;
         }
 
         /* Info Alert */
         .info-alert {
-          background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.1));
-          border: 1px solid rgba(14, 165, 233, 0.3);
-          color: var(--accent);
-          padding: 20px;
-          border-radius: 12px;
-          font-size: 15px;
-          margin-bottom: 40px;
           display: flex;
-          align-items: center;
-          gap: 16px;
-          backdrop-filter: blur(10px);
+          align-items: flex-start;
+          gap: 12px;
+          background: transparent;
+          border: 1px solid var(--border);
+          color: var(--subtle);
+          padding: 16px;
+          border-radius: 8px;
+          font-size: 13px;
+          margin-bottom: 48px;
+          animation: slideUp 0.6s ease;
+        }
+
+        .info-alert svg {
+          width: 20px;
+          height: 20px;
+          min-width: 20px;
+          margin-top: 2px;
+          color: var(--accent);
+          stroke-width: 2;
         }
 
         /* Comparison Card */
         .comparison-card {
           border: 1px solid var(--border);
-          border-radius: 20px;
+          border-radius: 12px;
           overflow: hidden;
-          margin: 0 auto 60px;
-          box-shadow: 0 10px 40px -15px rgba(0, 0, 0, 0.1);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          margin: 0 auto 80px;
+          box-shadow: none;
+          transition: border-color 0.3s ease;
           width: 100%;
+          animation: slideUp 0.8s ease 0.2s backwards;
+          position: relative;
         }
 
         .comparison-card:hover {
-          box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.2);
+          border-color: var(--accent);
+        }
+
+        .comparison-card.hero-slider {
+          margin: 40px 0;
         }
 
         .comparison-card.mobile-mode {
           width: 375px;
-          border: 8px solid var(--text);
-          border-radius: 40px;
           margin-left: auto;
           margin-right: auto;
+          border: 8px solid var(--text);
+          border-radius: 32px;
         }
 
         .slider-container {
@@ -478,32 +647,41 @@ function AppContent() {
           height: 100%;
         }
 
+        .smart-layer {
+          z-index: 1;
+        }
+
         .default-layer {
           z-index: 2;
-          border-right: 2px solid var(--accent);
         }
 
         .img-tag {
           position: absolute;
-          top: 20px;
-          font-size: 11px;
-          font-weight: 800;
-          padding: 8px 14px;
+          top: 12px;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 6px 12px;
           border-radius: 6px;
           z-index: 10;
-          backdrop-filter: blur(10px);
-          letter-spacing: 0.5px;
+          letter-spacing: 0.3px;
+          border: none;
+          text-transform: uppercase;
         }
 
         .default-tag {
-          left: 20px;
+          left: 12px;
           background: rgba(255, 255, 255, 0.9);
-          color: #0f172a;
+          color: #000000;
+        }
+
+        [data-theme="light"] .default-tag {
+          background: #F5F5F7;
+          color: #000000;
         }
 
         .smart-tag {
-          right: 20px;
-          background: rgba(14, 165, 233, 0.9);
+          right: 12px;
+          background: var(--accent);
           color: white;
         }
 
@@ -520,7 +698,7 @@ function AppContent() {
 
         .slider-input::-webkit-slider-thumb {
           appearance: none;
-          width: 40px;
+          width: 50px;
           height: 100%;
           background: transparent;
         }
@@ -533,7 +711,11 @@ function AppContent() {
           background: var(--accent);
           z-index: 15;
           pointer-events: none;
-          box-shadow: 0 0 8px rgba(14, 165, 233, 0.5);
+          transition: width 0.2s ease;
+        }
+
+        .slider-input:hover + .slider-line {
+          width: 3px;
         }
 
         .slider-handle {
@@ -541,19 +723,25 @@ function AppContent() {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 48px;
-          height: 48px;
+          width: 44px;
+          height: 44px;
           background: var(--accent);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+          box-shadow: none;
+          border: none;
+          transition: transform 0.2s ease;
+        }
+
+        .slider-input:hover ~ .slider-handle {
+          transform: translate(-50%, -50%) scale(1.08);
         }
 
         .slider-handle::after {
           content: '↔';
-          font-weight: 800;
+          font-weight: 600;
           color: white;
           font-size: 18px;
         }
@@ -562,32 +750,33 @@ function AppContent() {
           position: absolute;
           bottom: 12px;
           right: 12px;
-          font-size: 11px;
+          font-size: 10px;
           color: #fff;
-          background: rgba(0, 0, 0, 0.5);
-          padding: 6px 12px;
+          background: rgba(0, 0, 0, 0.6);
+          padding: 6px 10px;
           border-radius: 6px;
           z-index: 998;
           text-decoration: none;
-          backdrop-filter: blur(4px);
-          transition: all 0.2s ease;
+          transition: background-color 0.2s ease;
+          border: none;
         }
 
         .attribution:hover {
-          background: rgba(0, 0, 0, 0.7);
+          background: rgba(0, 0, 0, 0.8);
         }
 
         .comparison-info {
-          padding: 28px;
-          background: var(--dark-card-bg);
+          padding: 24px;
+          background: transparent;
+          border-top: 1px solid var(--border);
         }
 
         .comparison-info h3 {
-          margin-bottom: 12px;
+          margin-bottom: 8px;
         }
 
         .comparison-info p {
-          font-size: 14px;
+          font-size: 13px;
           line-height: 1.6;
         }
 
@@ -598,21 +787,27 @@ function AppContent() {
           align-items: center;
           margin-bottom: 40px;
           flex-wrap: wrap;
-          gap: 24px;
+          gap: 16px;
         }
 
         .switch-label {
           display: flex;
           align-items: center;
-          gap: 12px;
-          font-weight: 600;
+          gap: 8px;
+          font-weight: 500;
           cursor: pointer;
-          font-size: 14px;
+          font-size: 13px;
+          transition: opacity 0.2s ease;
+          user-select: none;
+        }
+
+        .switch-label:hover {
+          opacity: 0.7;
         }
 
         input[type="checkbox"] {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
           cursor: pointer;
           accent-color: var(--accent);
         }
@@ -621,10 +816,10 @@ function AppContent() {
         pre {
           background: var(--code-bg);
           color: var(--text);
-          padding: 24px;
-          border-radius: 12px;
-          margin: 20px 0;
-          font-family: 'Courier New', monospace;
+          padding: 20px;
+          border-radius: 8px;
+          margin: 24px 0;
+          font-family: 'Menlo', 'Courier New', monospace;
           font-size: 13px;
           overflow-x: auto;
           border: 1px solid var(--border);
@@ -640,36 +835,42 @@ function AppContent() {
 
         th {
           text-align: left;
-          padding: 16px;
-          background: var(--code-bg);
-          border-bottom: 2px solid var(--border);
-          font-size: 13px;
-          font-weight: 700;
+          padding: 12px;
+          background: transparent;
+          border-bottom: 1px solid var(--border);
+          font-size: 12px;
+          font-weight: 600;
           color: var(--accent);
+          letter-spacing: 0.3px;
         }
 
         td {
-          padding: 16px;
+          padding: 12px;
           border-bottom: 1px solid var(--border);
-          font-size: 14px;
+          font-size: 13px;
+        }
+
+        tr:hover {
+          background: rgba(0, 122, 255, 0.03);
         }
 
         code {
-          background: var(--code-bg);
+          background: rgba(0, 122, 255, 0.1);
           padding: 2px 6px;
           border-radius: 4px;
-          font-family: monospace;
-          font-size: 13px;
+          font-family: 'Menlo', 'Courier New', monospace;
+          font-size: 12px;
           color: var(--accent);
         }
 
         .type-tag {
-          font-family: monospace;
+          font-family: 'Menlo', 'Courier New', monospace;
           color: var(--accent);
-          background: rgba(14, 165, 233, 0.1);
+          background: rgba(0, 122, 255, 0.08);
           padding: 2px 6px;
           border-radius: 4px;
-          font-size: 12px;
+          font-size: 11px;
+          font-weight: 600;
         }
 
         /* Features Grid */
@@ -677,7 +878,7 @@ function AppContent() {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
           gap: 24px;
-          margin-top: 40px;
+          margin-top: 48px;
         }
 
         .feature-item {
@@ -688,42 +889,64 @@ function AppContent() {
           display: flex;
           flex-direction: column;
           gap: 12px;
+          background: transparent;
+          animation: slideUp 0.6s ease;
+          position: relative;
         }
 
         .feature-item:hover {
           border-color: var(--accent);
-          box-shadow: 0 10px 30px -10px rgba(14, 165, 233, 0.2);
-          transform: translateY(-4px);
+          background: rgba(0, 122, 255, 0.02);
         }
 
         .feature-icon {
           font-size: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 52px;
+          height: 52px;
+          background: transparent;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          transition: all 0.2s ease;
+          color: var(--accent);
+        }
+
+        .feature-item:hover .feature-icon {
+          border-color: var(--accent);
+          background: rgba(0, 122, 255, 0.05);
+          transform: scale(1.08);
         }
 
         .feature-item h4 {
-          margin-bottom: 8px;
+          font-size: 15px;
         }
 
         .feature-item p {
           font-size: 13px;
           line-height: 1.6;
           margin: 0;
+          color: var(--subtle);
         }
 
         /* Upload Test Section */
         .upload-section {
           padding: 40px;
           border: 2px dashed var(--border);
-          border-radius: 16px;
+          border-radius: 12px;
           text-align: center;
-          background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(6, 182, 212, 0.05));
+          background: transparent;
           margin-bottom: 40px;
           transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+          box-shadow: none;
         }
 
         .upload-section:hover {
           border-color: var(--accent);
-          background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.1));
+          background: rgba(0, 122, 255, 0.02);
         }
 
         .upload-section input[type="file"] {
@@ -732,43 +955,50 @@ function AppContent() {
 
         .upload-trigger {
           display: inline-block;
-          padding: 12px 24px;
-          background: linear-gradient(135deg, var(--accent), #06b6d4);
+          padding: 12px 28px;
+          background: var(--accent);
           color: white;
           border: none;
           border-radius: 8px;
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.3s ease;
-          margin-top: 12px;
+          transition: all 0.2s ease;
+          margin-top: 16px;
+          box-shadow: none;
         }
 
         .upload-trigger:hover {
-          box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+          opacity: 0.8;
           transform: translateY(-2px);
+        }
+
+        .upload-trigger:active {
+          transform: translateY(0);
         }
 
         .upload-hint {
           color: var(--subtle);
-          font-size: 13px;
+          font-size: 12px;
           margin-top: 8px;
         }
 
         .upload-clear-btn {
-          padding: 8px 16px;
-          background: var(--code-bg);
-          color: var(--text);
-          border: 1px solid var(--border);
+          padding: 6px 14px;
+          background: transparent;
+          color: var(--accent);
+          border: 1px solid var(--accent);
           border-radius: 6px;
-          font-size: 13px;
+          font-size: 12px;
           cursor: pointer;
           transition: all 0.2s ease;
-          margin-left: 12px;
+          margin-left: 8px;
+          font-weight: 500;
         }
 
         .upload-clear-btn:hover {
-          background: var(--border);
+          background: var(--accent);
+          color: white;
         }
 
         /* Footer */
@@ -776,8 +1006,9 @@ function AppContent() {
           padding: 60px 0;
           text-align: center;
           color: var(--subtle);
-          font-size: 13px;
+          font-size: 12px;
           border-top: 1px solid var(--border);
+          background: transparent;
         }
 
         .footer-links {
@@ -791,7 +1022,8 @@ function AppContent() {
         .footer-links a {
           text-decoration: none;
           color: var(--accent);
-          transition: opacity 0.2s;
+          transition: opacity 0.2s ease;
+          font-weight: 500;
         }
 
         .footer-links a:hover {
@@ -804,8 +1036,17 @@ function AppContent() {
             display: none;
           }
 
-          h1 { font-size: clamp(28px, 8vw, 48px); }
-          h2 { font-size: 28px; }
+          .container {
+            padding: 0 20px;
+          }
+
+          h1 { 
+            font-size: clamp(28px, 8vw, 44px); 
+          }
+
+          h2 { 
+            font-size: clamp(20px, 6vw, 28px);
+          }
 
           .controls-bar {
             flex-direction: column;
@@ -825,11 +1066,78 @@ function AppContent() {
             width: 100%;
             max-width: 375px;
           }
+
+          section {
+            padding: 60px 0;
+          }
+
+          .hero {
+            min-height: auto;
+            padding: 60px 0;
+          }
+
+          .hero-cta {
+            flex-direction: column;
+            align-items: center;
+          }
+
+          .btn {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .nav-container {
+            padding: 0 16px;
+          }
+
+          .upload-section {
+            padding: 24px;
+          }
+
+          .feature-item {
+            padding: 20px;
+          }
+
+          .comparison-info {
+            padding: 16px;
+          }
+
+          footer {
+            padding: 40px 0;
+          }
+
+          .footer-links {
+            gap: 16px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .nav-container {
+            gap: 12px;
+            padding: 0 12px;
+          }
+
+          .hero-subtitle {
+            font-size: 15px;
+          }
+
+          .btn {
+            padding: 10px 20px;
+            font-size: 13px;
+          }
+
+          table {
+            font-size: 11px;
+          }
+
+          th, td {
+            padding: 8px 6px;
+          }
         }
       `}</style>
 
             {/* Navigation */}
-            <nav className="nav">
+            <nav className="nav" data-scrolled={scrolled}>
                 <div className="nav-container">
                     <span className="nav-logo">{t(language, 'nav.home')}</span>
                     <div className="nav-links">
@@ -840,35 +1148,36 @@ function AppContent() {
                         <a href="https://github.com/sargisartashyanmain/react-smart-crop" target="_blank" rel="noreferrer">{t(language, 'nav.github')}</a>
                     </div>
                     <div className="nav-controls">
-                        <div className="language-switch">
+                        <div className="language-dropdown">
                             <button
-                                className={`lang-btn ${language === 'en' ? 'active' : ''}`}
-                                onClick={() => setLanguage('en')}
+                                className="language-flag-btn"
+                                onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
+                                aria-label="Select language"
                             >
-                                EN
+                                {language === 'en' ? '🇺🇸' : '🇷🇺'}
                             </button>
-                            <button
-                                className={`lang-btn ${language === 'ru' ? 'active' : ''}`}
-                                onClick={() => setLanguage('ru')}
-                            >
-                                РУ
-                            </button>
-                        </div>
-                        <div className="theme-toggle">
-                            <button
-                                className={`theme-btn ${theme === 'light' ? 'active' : ''}`}
-                                onClick={() => toggleTheme()}
-                                title={t(language, 'theme.toggle')}
-                            >
-                                ☀️
-                            </button>
-                            <button
-                                className={`theme-btn ${theme === 'dark' ? 'active' : ''}`}
-                                onClick={() => toggleTheme()}
-                                title={t(language, 'theme.toggle')}
-                            >
-                                🌙
-                            </button>
+                            {languageMenuOpen && (
+                                <div className="language-menu">
+                                    <button
+                                        className="language-option"
+                                        onClick={() => {
+                                            setLanguage('en');
+                                            setLanguageMenuOpen(false);
+                                        }}
+                                    >
+                                        🇺🇸
+                                    </button>
+                                    <button
+                                        className="language-option"
+                                        onClick={() => {
+                                            setLanguage('ru');
+                                            setLanguageMenuOpen(false);
+                                        }}
+                                    >
+                                        🇷🇺
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -878,11 +1187,15 @@ function AppContent() {
             <div className="container">
                 {/* Hero Section */}
                 <section className="hero">
-                    <h1>{t(language, 'hero.title')}</h1>
-                    <p className="hero-subtitle">{t(language, 'hero.subtitle')}</p>
+                    <div className="hero-content">
+                        <h1>{t(language, 'hero.title')}</h1>
+                        <p className="hero-subtitle">{t(language, 'hero.subtitle')}</p>
+                        <div className="performance-badge"><Icons.Zap /> 100% Client-Side • Zero Latency</div>
+                    </div>
+
+
                     <div className="hero-cta">
-                        <button className="btn btn-primary">{t(language, 'hero.cta')}</button>
-                        <button className="btn btn-secondary">{t(language, 'hero.live_demo')}</button>
+                        <a href='#usage' className="btn btn-primary">{t(language, 'hero.cta')}</a>
                     </div>
                 </section>
 
@@ -890,12 +1203,12 @@ function AppContent() {
                 <section>
                     <h2>{t(language, 'features.title')}</h2>
                     <div className="features-grid">
-                        <FeatureItem icon="⚡" titleKey="features.performance" descKey="features.performance_desc" language={language} />
-                        <FeatureItem icon="🔒" titleKey="features.privacy" descKey="features.privacy_desc" language={language} />
-                        <FeatureItem icon="📱" titleKey="features.responsive" descKey="features.responsive_desc" language={language} />
-                        <FeatureItem icon="♿" titleKey="features.accessible" descKey="features.accessible_desc" language={language} />
-                        <FeatureItem icon="🚀" titleKey="features.lazyload" descKey="features.lazyload_desc" language={language} />
-                        <FeatureItem icon="💾" titleKey="features.memory" descKey="features.memory_desc" language={language} />
+                        <FeatureItem icon={<Icons.Zap />} titleKey="features.performance" descKey="features.performance_desc" language={language} />
+                        <FeatureItem icon={<Icons.Lock />} titleKey="features.privacy" descKey="features.privacy_desc" language={language} />
+                        <FeatureItem icon={<Icons.Phone />} titleKey="features.responsive" descKey="features.responsive_desc" language={language} />
+                        <FeatureItem icon={<Icons.Globe />} titleKey="features.accessible" descKey="features.accessible_desc" language={language} />
+                        <FeatureItem icon={<Icons.Rocket />} titleKey="features.lazyload" descKey="features.lazyload_desc" language={language} />
+                        <FeatureItem icon={<Icons.HardDrive />} titleKey="features.memory" descKey="features.memory_desc" language={language} />
                     </div>
                 </section>
 
@@ -903,7 +1216,7 @@ function AppContent() {
                 <section id="demo">
                     <h2>{t(language, 'demo.title')}</h2>
                     <div className="info-alert">
-                        <span>💡</span>
+                        <Icons.Lightbulb />
                         <p>{t(language, 'demo.hint')}</p>
                     </div>
 
@@ -990,8 +1303,8 @@ function AppContent() {
                             </div>
 
                             <div className={`comparison-card ${isMobileView ? 'mobile-mode' : ''}`} style={{
-                                borderColor: isDark ? 'var(--dark-border)' : 'var(--light-border)',
-                                background: isDark ? 'var(--dark-card-bg)' : 'var(--light-card-bg)',
+                                borderColor: 'var(--dark-border)',
+                                background: 'var(--dark-card-bg)',
                                 position: 'relative',
                             }}>
                                 <span className="img-tag default-tag">{t(language, 'tag.default')}</span>
@@ -1119,9 +1432,7 @@ export function ${t(language, 'usage.component')}() {
 export function App() {
     return (
         <LanguageProvider>
-            <ThemeProvider>
                 <AppContent />
-            </ThemeProvider>
         </LanguageProvider>
     );
 }
