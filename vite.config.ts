@@ -59,5 +59,8 @@ export default defineConfig({
   // Allow Vite to handle WASM modules without static analysis issues
   optimizeDeps: {
     exclude: ['src/wasm/smart_crop.js']
+  },
+  worker: {
+    format: 'es',
   }
 })

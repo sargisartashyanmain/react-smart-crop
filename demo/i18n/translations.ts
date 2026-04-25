@@ -51,6 +51,8 @@ export const translations = {
     'usage.example_title': 'Basic Usage Example:',
     'usage.import': 'import { SmartCropImage } from \'@sargis-artashyan/react-smart-crop\';',
     'usage.component': 'MyGallery',
+    'usage.multi_focus_title': 'Multi-focus Support',
+    'usage.multi_focus_desc': 'For group photos or complex scenes, you can detect multiple points of interest to implement custom zooming or adaptive carousels.',
 
     // API Reference
     'api.title': 'API Reference',
@@ -65,6 +67,7 @@ export const translations = {
     'api.debug': 'Enable focal point visualization with pulsing indicator',
     'api.className': 'Custom CSS class for styling and theming',
     'api.alt': 'Alternative text for accessibility',
+    'api.maxPoints': 'Maximum number of focal points to detect (returns an array if > 1).',
 
     // Features
     'features.title': 'Key Features',
@@ -142,6 +145,8 @@ export const translations = {
     'usage.example_title': 'Пример использования:',
     'usage.import': 'import { SmartCropImage } from \'@sargis-artashyan/react-smart-crop\';',
     'usage.component': 'MyGallery',
+    'usage.multi_focus_title': 'Поддержка Multi-focus',
+    'usage.multi_focus_desc': 'Для групповых фото или сложных сцен можно находить несколько точек интереса. Это полезно для реализации умного зума или адаптивных каруселей.',
 
     // API Reference
     'api.title': 'Справочник API',
@@ -156,6 +161,7 @@ export const translations = {
     'api.debug': 'Показать визуализацию фокусной точки',
     'api.className': 'Дополнительный CSS класс',
     'api.alt': 'Альтернативный текст для доступности',
+    'api.maxPoints': 'Максимальное количество точек фокуса. Возвращает массив, если значение больше 1.',
 
     // Features
     'features.title': 'Ключевые возможности',

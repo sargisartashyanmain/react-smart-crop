@@ -1,9 +1,18 @@
 #include <emscripten/emscripten.h>
 #include <stdint.h>
 #include <algorithm>
+#include <cstring>
+
+// Structure for returning focal points with scores
+struct FocalPoint {
+    float x;
+    float y;
+    float score;
+};
 
 extern "C"
 {
+    // Original single-point function (kept for backward compatibility)
     EMSCRIPTEN_KEEPALIVE
     uint64_t findSmartCrop(int width, int height, const uint8_t *__restrict__ pixels)
     {
@@ -96,5 +105,121 @@ extern "C"
         uint32_t resX = (uint32_t)((bestCellX + 0.5f) * (width / (float)gridCols));
         uint32_t resY = (uint32_t)((bestCellY + 0.5f) * (height / (float)gridRows));
         return ((uint64_t)resY << 32) | resX;
+    }
+
+    // Find N focal points using Non-Maximum Suppression
+    EMSCRIPTEN_KEEPALIVE
+    FocalPoint* findSmartCropMulti(int width, int height, const uint8_t *pixels, int max_points)
+    {
+        if (max_points <= 0 || !pixels)
+            return nullptr;
+
+        // Allocate result array
+        FocalPoint* results = (FocalPoint*)malloc(sizeof(FocalPoint) * max_points);
+        if (!results)
+            return nullptr;
+
+        int found = 0;
+        
+        // Build initial grid using existing algorithm logic
+        const int gridCols = 20;
+        const int gridRows = 20;
+        float grid[gridCols * gridRows];
+        memset(grid, 0, sizeof(grid));
+
+        // Grid scoring (same as single-point algorithm)
+        float cellWidth = width / (float)gridCols;
+        float cellHeight = height / (float)gridRows;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int offset = (y * width + x) * 4;
+                uint8_t r = pixels[offset + 0];
+                uint8_t g = pixels[offset + 1];
+                uint8_t b = pixels[offset + 2];
+
+                int gx = (int)(x / cellWidth);
+                int gy = (int)(y / cellHeight);
+                gx = gx >= gridCols ? gridCols - 1 : gx;
+                gy = gy >= gridRows ? gridRows - 1 : gy;
+
+                float tr = r / 255.0f;
+                float tg = g / 255.0f;
+                float tb = b / 255.0f;
+
+                float maxC = (tr > tg) ? ((tr > tb) ? tr : tb) : ((tg > tb) ? tg : tb);
+                float minC = (tr < tg) ? ((tr < tb) ? tr : tb) : ((tg < tb) ? tg : tb);
+                float delta = maxC - minC;
+
+                float sat = (maxC > 0.0f) ? (delta / maxC) : 0.0f;
+                float bri = maxC;
+
+                float importance = sat * bri;
+                if ((r > 95) && (g > 40) && (b > 20)) {
+                    importance += 0.3f;
+                }
+
+                float distFromCenter = sqrt(pow(gx - (gridCols / 2.0f), 2) + pow(gy - (gridRows / 2.0f), 2));
+                float maxDist = sqrt(pow(gridCols / 2.0f, 2) + pow(gridRows / 2.0f, 2));
+                float centerBias = 1.0f - (distFromCenter / maxDist) * 0.5f;
+
+                importance *= centerBias;
+                grid[gy * gridCols + gx] += importance;
+            }
+        }
+
+        // Find N points using Non-Maximum Suppression
+        const int suppressRadius = 2;
+        for (int pointIdx = 0; pointIdx < max_points; pointIdx++) {
+            // Find maximum in grid
+            float maxImportance = -1;
+            int bestCellX = 0;
+            int bestCellY = 0;
+
+            for (int gy = 1; gy < gridRows - 1; gy++) {
+                for (int gx = 1; gx < gridCols - 1; gx++) {
+                    float regionSum = 0;
+                    for (int oy = -1; oy <= 1; oy++) {
+                        int offset = (gy + oy) * gridCols + gx;
+                        regionSum += grid[offset - 1] + grid[offset] + grid[offset + 1];
+                    }
+                    if (regionSum > maxImportance) {
+                        maxImportance = regionSum;
+                        bestCellX = gx;
+                        bestCellY = gy;
+                    }
+                }
+            }
+
+            // If no significant point found, stop
+            if (maxImportance < 0.1f)
+                break;
+
+            // Store result
+            float centerX = (bestCellX + 0.5f) * (width / (float)gridCols);
+            float centerY = (bestCellY + 0.5f) * (height / (float)gridRows);
+            results[found].x = centerX;
+            results[found].y = centerY;
+            results[found].score = maxImportance;
+            found++;
+
+            // Non-Maximum Suppression: zero region around found point
+            for (int gy = bestCellY - suppressRadius; gy <= bestCellY + suppressRadius; gy++) {
+                for (int gx = bestCellX - suppressRadius; gx <= bestCellX + suppressRadius; gx++) {
+                    if (gx >= 0 && gx < gridCols && gy >= 0 && gy < gridRows) {
+                        grid[gy * gridCols + gx] = 0;
+                    }
+                }
+            }
+        }
+
+        return results;
+    }
+
+    // Free allocated focal points array
+    EMSCRIPTEN_KEEPALIVE
+    void freeFocalPoints(FocalPoint* ptr)
+    {
+        free(ptr);
     }
 }

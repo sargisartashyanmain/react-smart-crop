@@ -16,5 +16,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true
+  },
+  server:{
+    fs: {
+      allow: [
+        // разрешаем доступ к родительской папке библиотеки
+        resolve(__dirname, '../')
+      ]
+    }
   }
 });

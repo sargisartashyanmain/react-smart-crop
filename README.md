@@ -152,6 +152,131 @@ Enable debug mode to visualize the detected focal point:
 
 ---
 
+## � Advanced Usage
+
+### Multi-Point Focal Detection
+
+Detect multiple focal points in a single image using Non-Maximum Suppression algorithm:
+
+```jsx
+import { useSmartCrop, type FocalPoint } from '@sargis-artashyan/react-smart-crop';
+
+export function MultiPointAnalysis() {
+  const { analyzeImage } = useSmartCrop();
+  const [points, setPoints] = useState<FocalPoint[]>([]);
+
+  const handleAnalyze = async (imageElement: HTMLImageElement) => {
+    // Request 5 focal points instead of default 1
+    const result = await analyzeImage(imageElement, 0, 5);
+    
+    if (Array.isArray(result)) {
+      setPoints(result);
+      result.forEach((point, idx) => {
+        console.log(`Point ${idx + 1}: (${point.x.toFixed(1)}%, ${point.y.toFixed(1)}%) - Score: ${(point.score * 100).toFixed(0)}%`);
+      });
+    }
+  };
+
+  return (
+    <div>
+      <img id="img" src="complex-scene.jpg" alt="Scene with multiple subjects" />
+      <button onClick={() => handleAnalyze(document.getElementById('img'))}>
+        Find focal points
+      </button>
+    </div>
+  );
+}
+```
+
+**How it works:**
+1. **Non-Maximum Suppression**: After finding each focal point, the algorithm suppresses a region around it
+2. **Score-Based Ranking**: Each point receives a confidence score (0-1) based on saliency
+3. **Adaptive Detection**: Returns fewer points if image has less visual complexity
+4. **Memory Safe**: Automatically frees WASM heap memory
+
+**Use Cases:**
+- 📸 **Multi-Subject Photos**: Portrait groups, crowd scenes
+- 🎬 **Composition Analysis**: Find all important regions for layout
+- 🤖 **AI Training Data**: Generate focal point labels for ML models
+- 🎨 **Design Tools**: Smart guides for optimal crop regions
+
+### Custom Hook Implementation
+
+```jsx
+import { useSmartCrop } from '@sargis-artashyan/react-smart-crop';
+import { useRef, useState } from 'react';
+
+export function CustomCropAnalyzer() {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const { analyzeImage, cancelAnalysis, updatePriority } = useSmartCrop();
+  const [result, setResult] = useState(null);
+
+  // Single focal point (default)
+  const analyzeSingle = async () => {
+    const result = await analyzeImage(imgRef.current, 0); // priority 0 = visible
+    setResult(result);
+  };
+
+  // Multiple focal points
+  const analyzeMulti = async (count: number) => {
+    const result = await analyzeImage(imgRef.current, 1, count); // priority 1 = preload
+    setResult(result);
+  };
+
+  // Change priority of queued task
+  const prioritizeCurrentTask = () => {
+    updatePriority(0); // Move to high priority queue
+  };
+
+  // Cancel ongoing analysis
+  const stopAnalysis = () => {
+    cancelAnalysis();
+    setResult(null);
+  };
+
+  return (
+    <>
+      <img ref={imgRef} src="photo.jpg" alt="Analysis target" />
+      <button onClick={analyzeSingle}>Analyze Single Point</button>
+      <button onClick={() => analyzeMulti(5)}>Analyze 5 Points</button>
+      <button onClick={prioritizeCurrentTask}>Prioritize</button>
+      <button onClick={stopAnalysis}>Cancel</button>
+      {result && (
+        <div>
+          {Array.isArray(result) ? (
+            <p>Found {result.length} focal points</p>
+          ) : (
+            <p>Focal point: ({result.x}%, {result.y}%)</p>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+### TypeScript Types
+
+```typescript
+// Single focal point (backward compatible)
+interface SmartPoint {
+  x: number;  // Percentage 0-100
+  y: number;  // Percentage 0-100
+}
+
+// Multiple focal points (with confidence scores)
+interface FocalPoint {
+  x: number;      // Percentage 0-100
+  y: number;      // Percentage 0-100
+  score: number;  // Confidence 0-1 (higher = more important)
+}
+
+// Hook return type
+type AnalysisResult = SmartPoint | FocalPoint[] | null;
+```
+
+---
+
 ## 📚 API Reference
 
 ### `SmartCropImage` Component Props
@@ -164,6 +289,30 @@ Enable debug mode to visualize the detected focal point:
 | `alt` | `string` | `''` | Alternative text for accessibility. Recommended. |
 | `debug` | `boolean` | `false` | Show focal point visualization with pulsing indicator. Useful for testing. |
 | `className` | `string` | `''` | Custom CSS class applied to the container. For styling/theming. |
+| `enableBlurUp` | `boolean` | `true` | Show blur-up placeholder during analysis (improves perceived performance). |
+| `placeholderColor` | `string` | `'#e2e8f0'` | Background color of blur-up placeholder SVG. Any valid CSS color. |
+
+### Hook: `useSmartCrop()`
+
+```typescript
+const { analyzeImage, cancelAnalysis, updatePriority, isReady } = useSmartCrop();
+
+// Analyze single point (backward compatible)
+const result: SmartPoint | null = await analyzeImage(source, priority);
+
+// Analyze multiple points (new feature)
+const results: FocalPoint[] | null = await analyzeImage(source, priority, maxPoints);
+```
+
+**Parameters:**
+- `source` — HTMLImageElement, HTMLCanvasElement, or ImageBitmap
+- `priority` — 0 (visible) | 1 (preload) | 2 (background, default)
+- `maxPoints` — Number of focal points to find (1 = default, 2-10 recommended)
+
+**Methods:**
+- `cancelAnalysis()` — Cancel current or queued task
+- `updatePriority(newPriority)` — Upgrade priority of queued task
+- `isReady` — Whether WASM module is initialized
 
 ### Component Behavior
 
@@ -172,10 +321,11 @@ Enable debug mode to visualize the detected focal point:
 - **Memory Safe**: Automatically cleans up WASM memory after analysis
 - **Race Condition Safe**: Discards results if image URL changes during analysis
 - **Error Handling**: Graceful fallback with error message if image fails to load
+- **Debug Visualization**: Shows all detected focal points with size scaled by confidence score
 
 ---
 
-## � Performance Comparison
+## ⚙️ Performance Comparison
 
 | Task | JavaScript | WebAssembly | Speedup |
 |------|-----------|------------|----------|
@@ -217,51 +367,51 @@ Enable debug mode to visualize the detected focal point:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                     BROWSER (CLIENT)                     │
+│                     BROWSER (CLIENT)                    │
 ├─────────────────────────────────────────────────────────┤
-│                                                          │
+│                                                         │
 │  ┌──────────────┐         ┌───────────────┐             │
 │  │   Image URL  │────────>│  Intersection │             │
 │  │  (CORS Safe) │         │    Observer   │             │
 │  └──────────────┘         │  (Lazy Load)  │             │
 │                           └───────────────┘             │
-│                                  │                       │
-│                                  ▼                       │
-│                         ┌──────────────────┐             │
-│                         │  Canvas 2D API   │             │
-│                         │  (64×64 resize)  │             │
-│                         └──────────────────┘             │
-│                                  │                       │
-│                                  ▼                       │
-│                    ╔══════════════════════╗              │
-│                    ║   WASM MODULE         ║              │
-│                    ║  (C++ Compiled)       ║              │
-│                    ║                       ║              │
-│                    ║  ✓ Edge Detection     ║              │
-│                    ║  ✓ Saliency Analysis  ║              │
-│                    ║  ✓ Max Pooling        ║              │
-│                    ║  ✓ Focal Point Calc   ║              │
-│                    ╚══════════════════════╝              │
-│                                  │                       │
-│                                  ▼                       │
-│                    ┌──────────────────────┐              │
-│                    │ Result Object        │              │
-│                    │ { x: 45, y: 60 }     │              │
-│                    │ (percentages)        │              │
-│                    └──────────────────────┘              │
-│                                  │                       │
-│                                  ▼                       │
-│              ┌──────────────────────────────┐            │
-│              │  CSS object-position Apply   │            │
-│              │  object-position: 45% 60%   │            │
-│              └──────────────────────────────┘            │
-│                                  │                       │
-│                                  ▼                       │
-│                    ┌──────────────────────┐              │
-│                    │  Focused Image       │              │
-│                    │  Rendered on Screen  │              │
-│                    └──────────────────────┘              │
-│                                                          │
+│                                  │                      │
+│                                  ▼                      │
+│                         ┌──────────────────┐            │
+│                         │  Canvas 2D API   │            │
+│                         │  (64×64 resize)  │            │
+│                         └──────────────────┘            │
+│                                  │                      │
+│                                  ▼                      │
+│                    ╔══════════════════════╗             │
+│                    ║   WASM MODULE        ║             │
+│                    ║  (C++ Compiled)      ║             │
+│                    ║                      ║             │
+│                    ║  ✓ Edge Detection    ║             │
+│                    ║  ✓ Saliency Analysis ║             │
+│                    ║  ✓ Max Pooling       ║             │
+│                    ║  ✓ Focal Point Calc  ║             │
+│                    ╚══════════════════════╝             │
+│                                  │                      │
+│                                  ▼                      │
+│                    ┌──────────────────────┐             │
+│                    │ Result Object        │             │
+│                    │ { x: 45, y: 60 }     │             │
+│                    │ (percentages)        │             │
+│                    └──────────────────────┘             │
+│                                  │                      │
+│                                  ▼                      │
+│              ┌──────────────────────────────┐           │
+│              │  CSS object-position Apply   │           │
+│              │  object-position: 45% 60%    │           │
+│              └──────────────────────────────┘           │
+│                                  │                      │
+│                                  ▼                      │
+│                    ┌──────────────────────┐             │
+│                    │  Focused Image       │             │
+│                    │  Rendered on Screen  │             │
+│                    └──────────────────────┘             │
+│                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -389,17 +539,6 @@ Your support helps us:
 
 ---
 
-## 🗺️ Roadmap
-
-### Planned Features
-
-- [ ] **Video Frame Analysis** — Apply smart crop to video frames in real-time
-- [ ] **Node.js Support** — Use in server-side image processing with node-canvas
-- [ ] **Animated GIF Support** — Analyze and crop animated images
-- [ ] **Multi-Crop Detection** — Detect multiple focal regions in single image
-- [ ] **Custom Algorithm Weights** — Expose parameters for fine-tuning saliency detection
-- [ ] **WebWorker Integration** — Offload analysis to background thread
-- [ ] **Performance Metrics** — Built-in analytics for analysis time and accuracy
 
 ### Known Limitations
 
@@ -485,36 +624,6 @@ npm run lint
 
 ---
 
-## 📝 Changelog
 
-### v1.0.3 (Current)
-**UI/UX Polish & Modern Design System**
-- 🎨 Complete demo redesign following Apple HIG principles
-- 🎯 Premium SaaS aesthetic with minimal, elegant design
-- 🇺🇸 Custom flag-based language selector dropdown (emoji flags only)
-- 🗑️ Removed theme toggle functionality for cleaner UI
-- 📱 Optimized ComparisonSlider with smooth requestAnimationFrame animation (60fps)
-- 🎪 Replaced emoji icons with 7 custom SVG icons (Zap, Lock, Phone, Globe, Rocket, HardDrive, Lightbulb)
-- 🎨 System Blue (#007AFF) color system throughout
-- ✨ Glassmorphism removed in favor of minimal 1px borders
-- ⚡ Micro-interactions with smooth transitions (0.2-0.3s)
-- 📊 Performance badge with custom SVG icon
-- 🌐 Multi-language support with improved UX
-
-### v1.0.2
-- Updated documentation and links
-- Fixed demo deployment
-- Improved TypeScript support
-- Added function overloads for translation keys
-
-### v1.0.0
-- Initial release
-- SmartCropImage component
-- useSmartCrop hook
-- Full TypeScript support
-- Debug visualization mode
-- Lazy loading optimization
-
----
 
 **Made with ❤️ in Armenia**
