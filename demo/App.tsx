@@ -1358,19 +1358,6 @@ export function ${t(language, 'usage.component')}() {
     </div>
   );
 }`}</pre>
-
-<div className="info-alert" style={{ marginTop: '32px' }}>
-        <Icons.Zap />
-        <p><strong>{t(language, 'usage.multi_focus_title') || 'New: Multi-focus Detection'}</strong></p>
-    </div>
-    <p style={{ marginTop: '16px', marginBottom: '16px' }}>{t(language, 'usage.multi_focus_desc')}</p>
-    <pre>{`import { useSmartCrop } from '@sargis-artashyan/react-smart-crop';
-
-// Get up to 3 focal points for complex layouts
-const { analyzeImage } = useSmartCrop();
-const points = await analyzeImage(imgElement, { maxPoints: 3 });
-
-// points = [{x, y, score}, {x, y, score}, ...]`}</pre>
                 </section>
 
                 {/* API Section */}
@@ -1422,12 +1409,6 @@ const points = await analyzeImage(imgElement, { maxPoints: 3 });
                                 <td><code>''</code></td>
                                 <td>{t(language, 'api.alt')}</td>
                             </tr>
-                            <tr>
-                <td><code>maxPoints</code></td>
-                <td><span className="type-tag">number</span></td>
-                <td><code>1</code></td>
-                <td>{t(language, 'api.maxPoints')}</td>
-            </tr>
                         </tbody>
                     </table>
                 </section>
